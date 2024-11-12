@@ -1,0 +1,12 @@
+# ignore everything
+/*
+
+# exclude from the ignore filter
+!.gitignore
+!main.go
+!collections/
+!custom_apis/
+!hooks/
+!go.mod
+!go.sum
+!pb_migrations/
