@@ -10,3 +10,4 @@
 !go.mod
 !go.sum
 !pb_migrations/
+!libs/

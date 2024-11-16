@@ -11,14 +11,26 @@ import (
 	"github.com/pocketbase/pocketbase/models"
 )
 
-func OnAfterCreated(app *pocketbase.PocketBase) {
-	app.OnRecordAfterCreateRequest(collections.PROJECT_COLLABORATION).Add(func(e *core.RecordCreateEvent) error {
+type ProjectCollaborationHooks struct {
+	app *pocketbase.PocketBase
+}
+
+func NewProjectCollaborationHooks(app *pocketbase.PocketBase) *ProjectCollaborationHooks {
+	return &ProjectCollaborationHooks{app}
+}
+
+func (h *ProjectCollaborationHooks) Register() {
+	h.onAfterCreated()
+}
+
+func (h *ProjectCollaborationHooks) onAfterCreated() {
+	h.app.OnRecordAfterCreateRequest(collections.PROJECT_COLLABORATION).Add(func(e *core.RecordCreateEvent) error {
 		fromUser, ok := e.HttpContext.Get(apis.ContextAuthRecordKey).(*models.Record)
 		if !ok {
 			return nil
 		}
 
-		collection, err := app.Dao().FindCollectionByNameOrId(collections.NOTIFICATION)
+		collection, err := h.app.Dao().FindCollectionByNameOrId(collections.NOTIFICATION)
 		if err != nil {
 			return apis.NewBadRequestError("Failed to find notification collection", err)
 		}
@@ -32,7 +44,7 @@ func OnAfterCreated(app *pocketbase.PocketBase) {
 		record.Set("projectCollaborationId", e.Record.Id)
 		record.Set("type", "INVITE_TO_PROJECT")
 
-		form := forms.NewRecordUpsert(app, record)
+		form := forms.NewRecordUpsert(h.app, record)
 
 		event := new(core.RecordCreateEvent)
 		event.HttpContext = e.HttpContext
@@ -43,12 +55,12 @@ func OnAfterCreated(app *pocketbase.PocketBase) {
 			return func(m *models.Record) error {
 				event.Record = m
 
-				return app.OnRecordBeforeCreateRequest().Trigger(event, func(e *core.RecordCreateEvent) error {
+				return h.app.OnRecordBeforeCreateRequest().Trigger(event, func(e *core.RecordCreateEvent) error {
 					if err := next(e.Record); err != nil {
 						return apis.NewBadRequestError("Failed to create record.", err)
 					}
 
-					return app.OnRecordAfterCreateRequest().Trigger(event, func(e *core.RecordCreateEvent) error {
+					return h.app.OnRecordAfterCreateRequest().Trigger(event, func(e *core.RecordCreateEvent) error {
 						if e.HttpContext.Response().Committed {
 							return nil
 						}

@@ -10,8 +10,20 @@ import (
 	"github.com/pocketbase/pocketbase/models"
 )
 
-func OnAfterCreated(app *pocketbase.PocketBase) {
-	app.OnRecordAfterCreateRequest(collections.PROJECTS).Add(func(e *core.RecordCreateEvent) error {
+type ProjectHooks struct {
+	app *pocketbase.PocketBase
+}
+
+func NewProjectHooks(app *pocketbase.PocketBase) *ProjectHooks {
+	return &ProjectHooks{app}
+}
+
+func (h *ProjectHooks) Register() {
+	h.onAfterCreated()
+}
+
+func (h *ProjectHooks) onAfterCreated() {
+	h.app.OnRecordAfterCreateRequest(collections.PROJECTS).Add(func(e *core.RecordCreateEvent) error {
 		admin, ok := e.HttpContext.Get(apis.ContextAdminKey).(*models.Record)
 		if ok && admin != nil {
 			return nil
@@ -22,7 +34,7 @@ func OnAfterCreated(app *pocketbase.PocketBase) {
 			return nil
 		}
 
-		_, err := app.Dao().DB().Insert(collections.PROJECT_COLLABORATION, dbx.Params{
+		_, err := h.app.Dao().DB().Insert(collections.PROJECT_COLLABORATION, dbx.Params{
 			"projectId": e.Record.Id,
 			"userId":    user.Id,
 		}).Execute()

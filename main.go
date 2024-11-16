@@ -5,9 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"pocketbase-be/custom_apis"
-	"pocketbase-be/hooks/project_collaboration"
-	"pocketbase-be/hooks/projects"
-	"pocketbase-be/hooks/view_project_collaboration_expanded_user"
+	"pocketbase-be/hooks"
+	"pocketbase-be/libs/tasks"
 	"strings"
 	"time"
 
@@ -125,9 +124,8 @@ func main() {
 		return nil
 	})
 
-	view_project_collaboration_expanded_user.OnRecordsListRequest(app)
-	projects.OnAfterCreated(app)
-	project_collaboration.OnAfterCreated(app)
+	taskService := tasks.NewTaskService(app)
+	hooks.Register(app, taskService)
 
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		projectApi := custom_apis.NewProjectApi(app, e)
@@ -135,6 +133,9 @@ func main() {
 
 		notificationApi := custom_apis.NewNotificationApi(app, e)
 		notificationApi.Register()
+
+		tasksApi := custom_apis.NewTasksApi(app, e, taskService)
+		tasksApi.Register()
 
 		return nil
 	})

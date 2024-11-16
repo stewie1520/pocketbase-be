@@ -12,8 +12,20 @@ import (
 	"github.com/pocketbase/pocketbase/models"
 )
 
-func OnRecordsListRequest(app *pocketbase.PocketBase) {
-	app.OnRecordsListRequest(collections.VIEW_PROJECT_COLLABORATION_EXPANDED_USER).Add(func(e *core.RecordsListEvent) error {
+type ViewProjectCollaborationExpandedUserHooks struct {
+	app *pocketbase.PocketBase
+}
+
+func NewViewProjectCollaborationExpandedUserHooks(app *pocketbase.PocketBase) *ViewProjectCollaborationExpandedUserHooks {
+	return &ViewProjectCollaborationExpandedUserHooks{app}
+}
+
+func (h *ViewProjectCollaborationExpandedUserHooks) Register() {
+	h.onRecordsListRequest()
+}
+
+func (h *ViewProjectCollaborationExpandedUserHooks) onRecordsListRequest() {
+	h.app.OnRecordsListRequest(collections.VIEW_PROJECT_COLLABORATION_EXPANDED_USER).Add(func(e *core.RecordsListEvent) error {
 		admin, ok := e.HttpContext.Get(apis.ContextAdminKey).(*models.Record)
 		if ok && admin != nil {
 			return nil
@@ -41,7 +53,7 @@ func OnRecordsListRequest(app *pocketbase.PocketBase) {
 			go func(projectId string) {
 				defer wg.Done()
 
-				records, err := app.Dao().FindRecordsByFilter(
+				records, err := h.app.Dao().FindRecordsByFilter(
 					collections.VIEW_PROJECT_COLLABORATION_EXPANDED_USER,
 					"projectId = {:projectId} && userId = {:userId}",
 					"-id",
