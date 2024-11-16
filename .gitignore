@@ -11,3 +11,4 @@
 !go.sum
 !pb_migrations/
 !libs/
+!README.md
