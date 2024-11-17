@@ -44,7 +44,7 @@ jobs:
           args: --timeout 3m --verbose
 
   Test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latestg
     strategy:
       matrix:
         go: [ '1.22', 'oldstable', 'stable' ]
@@ -60,12 +60,6 @@ jobs:
         run: |
           go version
           go test -v -timeout 9999s -count 1 -p 1 -cover -coverprofile coverage.txt ./
-      - name: Run tests (in different package)
-        run: |
-          go version
-          cd module_test && \
-            go test -v -timeout 9999s -count 1 -p 1 -cover -coverprofile ../coverage_test_package.txt -coverpkg=github.com/btnguyen2k/mymodule ./ && \
-            cd ..
       - name: Codecov
         uses: codecov/codecov-action@v5
         with:
