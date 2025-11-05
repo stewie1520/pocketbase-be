@@ -129,13 +129,13 @@ func main() {
 
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		projectApi := custom_apis.NewProjectApi(app, e)
-		projectApi.Register()
+		projectApi.Mount()
 
 		notificationApi := custom_apis.NewNotificationApi(app, e)
-		notificationApi.Register()
+		notificationApi.Mount()
 
 		tasksApi := custom_apis.NewTasksApi(app, e, taskService)
-		tasksApi.Register()
+		tasksApi.Mount()
 
 		return nil
 	})

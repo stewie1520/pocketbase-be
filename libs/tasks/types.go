@@ -30,3 +30,7 @@ type CreateTaskDefinition struct {
 	AssigneeIds []string
 	Status      string
 }
+
+type TaskFilter struct {
+	Status string
+}

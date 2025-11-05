@@ -23,7 +23,7 @@ func NewProjectApi(app *pocketbase.PocketBase, event *core.ServeEvent) *ProjectA
 	return &ProjectApi{app, event}
 }
 
-func (api *ProjectApi) Register() {
+func (api *ProjectApi) Mount() {
 	projectGroup := api.event.Router.Group("/projects", apis.RequireRecordAuth())
 	api.inviteToEvent(projectGroup)
 }

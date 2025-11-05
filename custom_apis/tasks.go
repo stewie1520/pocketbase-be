@@ -23,7 +23,7 @@ func NewTasksApi(app *pocketbase.PocketBase, event *core.ServeEvent, service *ta
 	return &TasksApi{app, event, service}
 }
 
-func (api *TasksApi) Register() {
+func (api *TasksApi) Mount() {
 	tasksGroup := api.event.Router.Group("/projects/:projectId/tasks", apis.RequireRecordAuth())
 	api.listTasks(tasksGroup)
 	api.createTask(tasksGroup)
@@ -31,10 +31,14 @@ func (api *TasksApi) Register() {
 }
 
 func (api *TasksApi) listTasks(tasksGroup *echo.Group) {
+	type ListQueryFilter struct {
+		Status string `query:"status"`
+	}
+
 	type ListQueryParams struct {
-		Status  string `query:"status" validate:"required"`
-		Page    int64  `query:"page" default:"1" min:"1"`
-		PerPage int64  `query:"perPage" default:"20" min:"1"`
+		Filter  ListQueryFilter `query:"filter" default:"{}"`
+		Page    int64           `query:"page" default:"1" min:"1"`
+		PerPage int64           `query:"perPage" default:"20" min:"1"`
 	}
 
 	tasksGroup.GET("", func(c echo.Context) error {
@@ -54,19 +58,30 @@ func (api *TasksApi) listTasks(tasksGroup *echo.Group) {
 			return apis.NewForbiddenError("Unauthorized", err)
 		}
 
-		tasks, err := api.service.FetchTasksWithUserInfo(projectId, queryParams.Status, queryParams.Page, queryParams.PerPage)
+		items, err := api.service.FetchTasksWithUserInfo(
+			projectId,
+			tasks.TaskFilter{
+				Status: queryParams.Filter.Status,
+			},
+			queryParams.Page, queryParams.PerPage,
+		)
 
 		if err != nil {
 			return apis.NewApiError(http.StatusInternalServerError, "Failed to list tasks", err)
 		}
 
-		totalTasks, err := api.service.CountTasks(projectId, queryParams.Status)
+		totalTasks, err := api.service.CountTasks(
+			projectId,
+			tasks.TaskFilter{
+				Status: queryParams.Filter.Status,
+			},
+		)
 		if err != nil {
 			return apis.NewApiError(http.StatusInternalServerError, "Failed to count tasks", err)
 		}
 
 		return c.JSON(http.StatusOK, Pagination[TaskDto]{
-			Items:      mapTasksToDto(tasks),
+			Items:      mapTasksToDto(items),
 			Page:       queryParams.Page,
 			PerPage:    queryParams.PerPage,
 			TotalItems: totalTasks,

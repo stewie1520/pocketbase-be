@@ -40,7 +40,7 @@ func (service *TaskService) AuthorizeUserForProject(projectId, userId string) er
 }
 
 // FetchTasksWithUserInfo fetches tasks with user info
-func (service *TaskService) FetchTasksWithUserInfo(projectId string, status string, page int64, perPage int64) ([]TaskDefinition, error) {
+func (service *TaskService) FetchTasksWithUserInfo(projectId string, filter TaskFilter, page int64, perPage int64) ([]TaskDefinition, error) {
 	var tasks []struct {
 		ID          string                  `db:"id"`
 		Title       string                  `db:"title"`
@@ -55,6 +55,11 @@ func (service *TaskService) FetchTasksWithUserInfo(projectId string, status stri
 		Created     string                  `db:"created"`
 		Updated     string                  `db:"updated"`
 		Order       float64                 `db:"order"`
+	}
+
+	where := dbx.HashExp{"projectId": projectId}
+	if filter.Status != "" {
+		where["status"] = filter.Status
 	}
 
 	err := service.app.Dao().DB().Select(
@@ -80,7 +85,7 @@ func (service *TaskService) FetchTasksWithUserInfo(projectId string, status stri
 		AndOrderBy(fmt.Sprintf("%s.created DESC", collections.TASKS)).
 		Offset((page - 1) * perPage).
 		Limit(perPage).
-		Where(dbx.HashExp{"projectId": projectId, "status": status}).
+		Where(where).
 		All(&tasks)
 
 	tasksResponses := make([]TaskDefinition, 0)
@@ -125,19 +130,27 @@ func (service *TaskService) FetchTasksWithUserInfo(projectId string, status stri
 }
 
 // CountTasks counts tasks
-func (service *TaskService) CountTasks(projectId string, status string) (int64, error) {
+func (service *TaskService) CountTasks(projectId string, filter TaskFilter) (int64, error) {
 	var count struct {
 		Count int64 `db:"count"`
 	}
 
-	q := service.app.Dao().DB().NewQuery(
-		fmt.Sprintf("SELECT COUNT(*) as count FROM %s WHERE projectId = {:projectId} AND status = {:status}", collections.TASKS),
-	)
+	sql := fmt.Sprintf("SELECT COUNT(*) as count FROM %s WHERE projectId = {:projectId}", collections.TASKS)
+	if filter.Status != "" {
+		sql += " AND status = {:status}"
+	}
 
-	q.Bind(dbx.Params{
+	q := service.app.Dao().DB().NewQuery(sql)
+
+	params := dbx.Params{
 		"projectId": projectId,
-		"status":    status,
-	})
+	}
+
+	if filter.Status != "" {
+		params["status"] = filter.Status
+	}
+
+	q.Bind(params)
 
 	err := q.One(&count)
 

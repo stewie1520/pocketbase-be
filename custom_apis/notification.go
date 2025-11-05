@@ -21,7 +21,7 @@ func NewNotificationApi(app *pocketbase.PocketBase, event *core.ServeEvent) *Not
 	return &NotificationApi{app, event}
 }
 
-func (api *NotificationApi) Register() {
+func (api *NotificationApi) Mount() {
 	notificationGroup := api.event.Router.Group("/notifications", apis.RequireRecordAuth())
 	api.countUnseenNotification(notificationGroup)
 }
